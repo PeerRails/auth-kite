@@ -1,4 +1,4 @@
-package main
+package auth_kite
 
 import (
 	"encoding/json"
@@ -7,9 +7,10 @@ import (
 )
 
 var log = logging.MustGetLogger("main.log")
-var format = logging.MustStringFormatter(
-	`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
-)
+
+//var format = logging.MustStringFormatter(
+//	`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+//)
 
 type Pong struct {
 	Text   string `json:"text"`
@@ -28,21 +29,16 @@ type ErrorMessage struct {
 }
 
 var (
-	internalServerError = &ErrorMessage{Error: true, Message: "Internal Server Error", Code: http.StatusInternalServerError}
-	notFoundError       = &ErrorMessage{Error: true, Message: "Not Found", Code: http.StatusNotFound}
-	forbiddenError      = &ErrorMessage{Error: true, Message: "Forbidden", Code: http.StatusForbidden}
-	invalidParamError   = &ErrorMessage{Error: true, Message: "Invalid Parameters", Code: http.StatusForbidden}
+	//internalServerError = &ErrorMessage{Error: true, Message: "Internal Server Error", Code: http.StatusInternalServerError}
+	notFoundError = &ErrorMessage{Error: true, Message: "Not Found", Code: http.StatusNotFound}
+	//forbiddenError      = &ErrorMessage{Error: true, Message: "Forbidden", Code: http.StatusForbidden}
+	invalidParamError = &ErrorMessage{Error: true, Message: "Invalid Parameters", Code: http.StatusForbidden}
 )
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info("Request Ping")
 	w.Header().Set("Content-Type", "application/json")
-	pong, err := json.Marshal(&Pong{Text: "pong", Status: "OK"})
-
-	if err != nil {
-		errorHandler(w, r, internalServerError)
-		return
-	}
+	pong, _ := json.Marshal(&Pong{Text: "pong", Status: "OK"})
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(pong)
@@ -58,12 +54,13 @@ func authKeyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key, err := json.Marshal(&Key{Key: keyParam, Expired: false})
-
-	if err != nil {
-		errorHandler(w, r, internalServerError)
-		return
-	}
+	key, _ := json.Marshal(&Key{Key: keyParam, Expired: false})
+	/*
+		if err != nil {
+			errorHandler(w, r, internalServerError)
+			return
+		}
+	*/
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(key)
@@ -75,7 +72,10 @@ func errorHandler(w http.ResponseWriter, r *http.Request, err *ErrorMessage) {
 	w.Write(error_json)
 }
 
+/*
 func main() {
 	http.HandleFunc("/", pingHandler)
+	http.HandleFunc("/auth", authKeyHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
+*/

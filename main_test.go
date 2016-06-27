@@ -1,4 +1,4 @@
-package main
+package auth_kite
 
 import (
 	"fmt"
@@ -11,7 +11,6 @@ import (
 var (
 	pongJSON          = `{"text":"pong","status":"OK"}`
 	paramErrorJSON    = `{"error":true,"message":"Invalid Parameters","code":403}`
-	keyQuery          = "key=keykeykey"
 	testNotFoundError = `{"error":true,"message":"Not Found","code":404}`
 )
 
@@ -32,6 +31,10 @@ func TestPing(t *testing.T) {
 		})
 
 		Convey("home should return OK", func() {
+			So(w.Body.String(), ShouldEqual, pongJSON)
+		})
+
+		Convey("JSON Parse error", func() {
 			So(w.Body.String(), ShouldEqual, pongJSON)
 		})
 
