@@ -16,18 +16,63 @@ type Pong struct {
 	Status string `json:"status"`
 }
 
+type Key struct {
+	Key     string `json:"key"`
+	Expired bool   `json:"expired"`
+}
+
+type ErrorMessage struct {
+	Error   bool   `json:"error"`
+	Message string `json:"message"`
+	Code    int    `json:"code"`
+}
+
+var (
+	internalServerError = &ErrorMessage{Error: true, Message: "Internal Server Error", Code: http.StatusInternalServerError}
+	notFoundError       = &ErrorMessage{Error: true, Message: "Not Found", Code: http.StatusNotFound}
+	forbiddenError      = &ErrorMessage{Error: true, Message: "Forbidden", Code: http.StatusForbidden}
+	invalidParamError   = &ErrorMessage{Error: true, Message: "Invalid Parameters", Code: http.StatusForbidden}
+)
+
 func pingHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info("Request Ping")
 	w.Header().Set("Content-Type", "application/json")
 	pong, err := json.Marshal(&Pong{Text: "pong", Status: "OK"})
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errorHandler(w, r, internalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(pong)
+}
+
+func authKeyHandler(w http.ResponseWriter, r *http.Request) {
+	log.Info("Request Auth Key")
+	w.Header().Set("Content-Type", "application/json")
+	keyParam := r.URL.Query().Get("key")
+
+	if keyParam == "" {
+		errorHandler(w, r, invalidParamError)
+		return
+	}
+
+	key, err := json.Marshal(&Key{Key: keyParam, Expired: false})
+
+	if err != nil {
+		errorHandler(w, r, internalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(key)
+}
+
+func errorHandler(w http.ResponseWriter, r *http.Request, err *ErrorMessage) {
+	w.WriteHeader(err.Code)
+	error_json, _ := json.Marshal(err)
+	w.Write(error_json)
 }
 
 func main() {
