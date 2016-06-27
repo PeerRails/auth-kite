@@ -9,9 +9,11 @@ import (
 )
 
 var (
-	pongJSON          = `{"text":"pong","status":"OK"}`
-	paramErrorJSON    = `{"error":true,"message":"Invalid Parameters","code":403}`
-	testNotFoundError = `{"error":true,"message":"Not Found","code":404}`
+	pongJSON                = `{"text":"pong","status":"OK"}`
+	paramErrorJSON          = `{"error":true,"message":"Invalid Parameters","code":403}`
+	testNotFoundError       = `{"error":true,"message":"Not Found","code":404}`
+	testForbiddenError      = `{"error":true,"message":"Forbidden","code":403}`
+	testInternalServerError = `{"error":true,"message":"Internal Server Error","code":500}`
 )
 
 func TestPing(t *testing.T) {
@@ -90,6 +92,26 @@ func TestErrorHandler(t *testing.T) {
 			})
 			Convey("Message should be Not Found", func() {
 				So(w.Body.String(), ShouldEqual, testNotFoundError)
+			})
+		})
+
+		Convey("should raise 403 error", func() {
+			errorHandler(w, req, forbiddenError)
+			Convey("httpCode should be 403", func() {
+				So(w.Code, ShouldEqual, http.StatusForbidden)
+			})
+			Convey("Message should be Internal Server Error", func() {
+				So(w.Body.String(), ShouldEqual, testForbiddenError)
+			})
+		})
+
+		Convey("should raise 500 error", func() {
+			errorHandler(w, req, internalServerError)
+			Convey("httpCode should be 500", func() {
+				So(w.Code, ShouldEqual, http.StatusInternalServerError)
+			})
+			Convey("Message should be Internal Server Error", func() {
+				So(w.Body.String(), ShouldEqual, testInternalServerError)
 			})
 		})
 	})

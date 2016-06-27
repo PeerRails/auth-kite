@@ -29,10 +29,10 @@ type ErrorMessage struct {
 }
 
 var (
-	//internalServerError = &ErrorMessage{Error: true, Message: "Internal Server Error", Code: http.StatusInternalServerError}
-	notFoundError = &ErrorMessage{Error: true, Message: "Not Found", Code: http.StatusNotFound}
-	//forbiddenError      = &ErrorMessage{Error: true, Message: "Forbidden", Code: http.StatusForbidden}
-	invalidParamError = &ErrorMessage{Error: true, Message: "Invalid Parameters", Code: http.StatusForbidden}
+	internalServerError = &ErrorMessage{Error: true, Message: "Internal Server Error", Code: http.StatusInternalServerError}
+	notFoundError       = &ErrorMessage{Error: true, Message: "Not Found", Code: http.StatusNotFound}
+	forbiddenError      = &ErrorMessage{Error: true, Message: "Forbidden", Code: http.StatusForbidden}
+	invalidParamError   = &ErrorMessage{Error: true, Message: "Invalid Parameters", Code: http.StatusForbidden}
 )
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
