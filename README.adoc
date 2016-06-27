@@ -1,0 +1,16 @@
+= Auth Kite
+Peer Rails <peer@omck.ws>
+
+image:https://travis-ci.org/PeerRails/auth-kite.svg?branch=master["Build Status", link="https://travis-ci.org/PeerRails/auth-kite"]
+image:https://codeclimate.com/github/PeerRails/auth-kite/badges/gpa.svg[link="https://codeclimate.com/github/PeerRails/auth-kite"]
+image:https://codeclimate.com/github/PeerRails/auth-kite/badges/coverage.svg[link="https://codeclimate.com/github/PeerRails/auth-kite/coverage"]
+image:https://codecov.io/gh/PeerRails/auth-kite/branch/master/graph/badge.svg[link="https://codecov.io/gh/PeerRails/auth-kite"]
+image:https://codeclimate.com/github/PeerRails/auth-kite/badges/issue_count.svg[link="https://codeclimate.com/github/PeerRails/auth-kite"]
+
+Auth Kite is a nginx rtmp auth service
+It is a test Go 1.6 beta project.
+
+
+== Installation
+
+Soon
