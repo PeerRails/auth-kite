@@ -1,7 +1,9 @@
-package auth_kite
+package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/op/go-logging"
 	"net/http"
 )
@@ -34,6 +36,14 @@ var (
 	forbiddenError      = &ErrorMessage{Error: true, Message: "Forbidden", Code: http.StatusForbidden}
 	invalidParamError   = &ErrorMessage{Error: true, Message: "Invalid Parameters", Code: http.StatusForbidden}
 )
+
+func init() {
+	db, err := sql.Open("sqlite3", "db.sqlite")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+}
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info("Request Ping")
@@ -72,10 +82,8 @@ func errorHandler(w http.ResponseWriter, r *http.Request, err *ErrorMessage) {
 	w.Write(error_json)
 }
 
-/*
 func main() {
 	http.HandleFunc("/", pingHandler)
 	http.HandleFunc("/auth", authKeyHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
-*/

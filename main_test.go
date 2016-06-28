@@ -1,4 +1,4 @@
-package auth_kite
+package main
 
 import (
 	"fmt"
