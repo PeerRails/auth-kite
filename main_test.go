@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 	. "github.com/smartystreets/goconvey/convey"
 	"net/http"
 	"net/http/httptest"
@@ -120,15 +120,15 @@ func TestErrorHandler(t *testing.T) {
 	})
 }
 
-func TestPrepareEnv(t *testing.T) {
+func TestPrepareDatabase(t *testing.T) {
 	Convey("Prepare Mock Database", t, func() {
-		db, err := sql.Open("sqlite3", ":memory:")
+		db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer db.Close()
-		Convey("Fill Database", func() {
-			query := "CREATE TABLE `keys` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`key` VARCHAR(64) NULL,`user_id` INTEGER,`expires_at` DATE NULL,`created_at` DATE NULL);"
+		SkipConvey("Fill Database", func() {
+			query := "CREATE TABLE IF EXISTS `keys` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`key` VARCHAR(64) NULL,`user_id` INTEGER,`expires_at` DATE NULL,`created_at` DATE NULL); DELETE FROM keys;"
 
 			_, err = db.Exec(query)
 			if err != nil {
@@ -179,14 +179,26 @@ func TestPrepareEnv(t *testing.T) {
 
 func TestInit(t *testing.T) {
 	Convey("Prepare Mock Database", t, func() {
-		Convey("should open .env.default if no .env", func() {
-			So(PrepareEnv, ShouldNotPanic)
+		_ = os.Setenv("DATABASE_URL", "postgres://test:test@pghost/keys_test?sslmode=false")
+		Convey("DATABASE_URL should not be empty", func() {
 			So(os.Getenv("DATABASE_URL"), ShouldNotBeEmpty)
 		})
-		//Convey("should panic if Database is incorrect", func() {
-		//	os.Setenv("DATABASE_URL", "-")
-		//	So(PrepareDatabase, ShouldPanic)
-		//})
+		Convey("should show error if DATABASE_URL is invalid", func() {
+			_ = os.Setenv("DATABASE_URL", "-")
+			_, err := PrepareDatabase(os.Getenv("DATABASE_URL"))
+			So(err, ShouldBeNil)
+		})
+		Convey("should connect to DATABASE if DATABASE_URL is empty", func() {
+			_ = os.Setenv("DATABASE_URL", "")
+			db, err := PrepareDatabase(os.Getenv("DATABASE_URL"))
+			SkipSo(err, ShouldBeNil)
+			SkipSo(db.Ping, ShouldBeNil)
+		})
+		Convey("should connect to Database", func() {
+			db, err := PrepareDatabase(os.Getenv("DATABASE_URL"))
+			SkipSo(err, ShouldBeNil)
+			SkipSo(db.Ping, ShouldBeNil)
+		})
 	})
 
 }

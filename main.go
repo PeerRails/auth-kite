@@ -3,14 +3,14 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/joho/godotenv"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 	"github.com/op/go-logging"
 	"net/http"
 	"os"
 )
 
 var log = logging.MustGetLogger("main.log")
+var Db *sql.DB
 
 //var format = logging.MustStringFormatter(
 //	`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
@@ -37,24 +37,28 @@ var (
 	notFoundError       = &ErrorMessage{Error: true, Message: "Not Found", Code: http.StatusNotFound}
 	forbiddenError      = &ErrorMessage{Error: true, Message: "Forbidden", Code: http.StatusForbidden}
 	invalidParamError   = &ErrorMessage{Error: true, Message: "Invalid Parameters", Code: http.StatusForbidden}
-	envFile             = ".env"
 )
 
-func PrepareEnv() {
-	err := godotenv.Load(envFile)
-	if err != nil {
-		log.Warning(err)
-		_ = godotenv.Load(".env.default")
-	}
-}
-
-func PrepareDatabase() {
-	db, err := sql.Open("sqlite3", os.Getenv("DATABASE_URL"))
+func PrepareDatabase(database_url string) (db *sql.DB, err error) {
+	db, err = sql.Open("postgres", database_url)
 	if err != nil {
 		log.Fatal(err)
-		panic(err)
+		return db, err
 	}
 	defer db.Close()
+	return db, err
+}
+
+func init() {
+	database_url := os.Getenv("DATABASE_URL")
+	if database_url == "" {
+		database_url = "postgres://test:test@pghost/keys_test?sslmode=verify-full"
+	}
+	var err error
+	Db, err = PrepareDatabase(database_url)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
@@ -97,5 +101,7 @@ func errorHandler(w http.ResponseWriter, r *http.Request, err *ErrorMessage) {
 func main() {
 	http.HandleFunc("/", pingHandler)
 	http.HandleFunc("/auth", authKeyHandler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":3000", nil))
+	query := "CREATE TABLE IF EXISTS `keys` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`key` VARCHAR(64) NULL,`user_id` INTEGER,`expires_at` DATE NULL,`created_at` DATE NULL);"
+	_, _ = Db.Exec(query)
 }
