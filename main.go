@@ -3,9 +3,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/op/go-logging"
 	"net/http"
+	"os"
 )
 
 var log = logging.MustGetLogger("main.log")
@@ -35,12 +37,22 @@ var (
 	notFoundError       = &ErrorMessage{Error: true, Message: "Not Found", Code: http.StatusNotFound}
 	forbiddenError      = &ErrorMessage{Error: true, Message: "Forbidden", Code: http.StatusForbidden}
 	invalidParamError   = &ErrorMessage{Error: true, Message: "Invalid Parameters", Code: http.StatusForbidden}
+	envFile             = ".env"
 )
 
-func init() {
-	db, err := sql.Open("sqlite3", "db.sqlite")
+func PrepareEnv() {
+	err := godotenv.Load(envFile)
+	if err != nil {
+		log.Warning(err)
+		_ = godotenv.Load(".env.default")
+	}
+}
+
+func PrepareDatabase() {
+	db, err := sql.Open("sqlite3", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatal(err)
+		panic(err)
 	}
 	defer db.Close()
 }

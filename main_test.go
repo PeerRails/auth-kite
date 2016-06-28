@@ -1,10 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	_ "github.com/mattn/go-sqlite3"
 	. "github.com/smartystreets/goconvey/convey"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -115,4 +118,75 @@ func TestErrorHandler(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestPrepareEnv(t *testing.T) {
+	Convey("Prepare Mock Database", t, func() {
+		db, err := sql.Open("sqlite3", ":memory:")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer db.Close()
+		Convey("Fill Database", func() {
+			query := "CREATE TABLE `keys` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`key` VARCHAR(64) NULL,`user_id` INTEGER,`expires_at` DATE NULL,`created_at` DATE NULL);"
+
+			_, err = db.Exec(query)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			queries, err := db.Prepare("insert into keys(key, user_id, expires_at, created_at) values(?, ?, ?, ?)")
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			_, err = queries.Exec("key1", 1, "2020-01-01", "2010-01-01")
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// mock data, ugly code just for testing
+			_, _ = queries.Exec("key2", 2, "2020-01-01", "2010-01-01")
+			_, _ = queries.Exec("key3", 3, "2020-01-01", "2010-01-01")
+			_, _ = queries.Exec("key4", 4, "2020-01-01", "2010-01-01")
+			_, _ = queries.Exec("key5", 5, "2020-01-01", "2010-01-01")
+
+			Convey("db should have all keys", func() {
+				rows, err := db.Query("select count(id) as c from keys")
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var c int
+					err = rows.Scan(&c)
+					if err != nil {
+						t.Fatal(err)
+					}
+					So(c, ShouldEqual, 5)
+				}
+				err = rows.Err()
+				if err != nil {
+					log.Fatal(err)
+				}
+			})
+
+		})
+	})
+}
+
+func TestInit(t *testing.T) {
+	Convey("Prepare Mock Database", t, func() {
+		Convey("should open .env.default if no .env", func() {
+			So(PrepareEnv, ShouldNotPanic)
+			So(os.Getenv("DATABASE_URL"), ShouldNotBeEmpty)
+		})
+		//Convey("should panic if Database is incorrect", func() {
+		//	os.Setenv("DATABASE_URL", "-")
+		//	So(PrepareDatabase, ShouldPanic)
+		//})
+	})
+
 }
