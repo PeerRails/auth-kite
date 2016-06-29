@@ -1,7 +1,7 @@
 package main
 
 import (
-	"database/sql"
+	_ "database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
 	. "github.com/smartystreets/goconvey/convey"
@@ -122,82 +122,39 @@ func TestErrorHandler(t *testing.T) {
 
 func TestPrepareDatabase(t *testing.T) {
 	Convey("Prepare Mock Database", t, func() {
-		db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer db.Close()
-		SkipConvey("Fill Database", func() {
-			query := "CREATE TABLE IF EXISTS `keys` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`key` VARCHAR(64) NULL,`user_id` INTEGER,`expires_at` DATE NULL,`created_at` DATE NULL); DELETE FROM keys;"
-
-			_, err = db.Exec(query)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			queries, err := db.Prepare("insert into keys(key, user_id, expires_at, created_at) values(?, ?, ?, ?)")
-
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			_, err = queries.Exec("key1", 1, "2020-01-01", "2010-01-01")
-
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			// mock data, ugly code just for testing
-			_, _ = queries.Exec("key2", 2, "2020-01-01", "2010-01-01")
-			_, _ = queries.Exec("key3", 3, "2020-01-01", "2010-01-01")
-			_, _ = queries.Exec("key4", 4, "2020-01-01", "2010-01-01")
-			_, _ = queries.Exec("key5", 5, "2020-01-01", "2010-01-01")
-
-			Convey("db should have all keys", func() {
-				rows, err := db.Query("select count(id) as c from keys")
-				if err != nil {
-					t.Fatal(err)
-				}
-				defer rows.Close()
-				for rows.Next() {
-					var c int
-					err = rows.Scan(&c)
-					if err != nil {
-						t.Fatal(err)
-					}
-					So(c, ShouldEqual, 5)
-				}
-				err = rows.Err()
-				if err != nil {
-					log.Fatal(err)
-				}
-			})
-
-		})
-	})
-}
-
-func TestInit(t *testing.T) {
-	Convey("Prepare Mock Database", t, func() {
-		_ = os.Setenv("DATABASE_URL", "postgres://test:test@pghost/keys_test?sslmode=false")
+		_ = os.Setenv("DATABASE_URL", "host=pghost user=test password=test dbname=keys_test sslmode=disable")
 		Convey("DATABASE_URL should not be empty", func() {
 			So(os.Getenv("DATABASE_URL"), ShouldNotBeEmpty)
 		})
 		Convey("should show error if DATABASE_URL is invalid", func() {
-			_ = os.Setenv("DATABASE_URL", "-")
-			_, err := PrepareDatabase(os.Getenv("DATABASE_URL"))
+			_, err := PrepareDatabase("host=11112 user=qwerty")
 			So(err, ShouldBeNil)
-		})
-		Convey("should connect to DATABASE if DATABASE_URL is empty", func() {
-			_ = os.Setenv("DATABASE_URL", "")
-			db, err := PrepareDatabase(os.Getenv("DATABASE_URL"))
-			SkipSo(err, ShouldBeNil)
-			SkipSo(db.Ping, ShouldBeNil)
 		})
 		Convey("should connect to Database", func() {
 			db, err := PrepareDatabase(os.Getenv("DATABASE_URL"))
-			SkipSo(err, ShouldBeNil)
-			SkipSo(db.Ping, ShouldBeNil)
+			So(err, ShouldBeNil)
+			Convey("should create table", func() {
+				query := "CREATE TABLE IF NOT EXISTS keys(id serial primary key, key varchar(40) not null, user_id integer)"
+				So(err, ShouldBeNil)
+				_, err = db.Exec(query)
+				So(err, ShouldBeNil)
+				Convey("should insert into table", func() {
+					query2, err := db.Prepare("insert into keys(key, user_id) values($1, $2)")
+					So(err, ShouldBeNil)
+					_, err = query2.Exec("key", 1)
+					Convey("should select from table", func() {
+						rows, err := db.Query("select id from keys where id = 1")
+						So(err, ShouldBeNil)
+						for rows.Next() {
+							var id int
+							err = rows.Scan(&id)
+							So(err, ShouldBeNil)
+							So(id, ShouldEqual, 1)
+						}
+
+					})
+				})
+			})
 		})
 	})
 

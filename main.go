@@ -45,20 +45,7 @@ func PrepareDatabase(database_url string) (db *sql.DB, err error) {
 		log.Fatal(err)
 		return db, err
 	}
-	defer db.Close()
 	return db, err
-}
-
-func init() {
-	database_url := os.Getenv("DATABASE_URL")
-	if database_url == "" {
-		database_url = "postgres://test:test@pghost/keys_test?sslmode=verify-full"
-	}
-	var err error
-	Db, err = PrepareDatabase(database_url)
-	if err != nil {
-		panic(err)
-	}
 }
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
@@ -81,12 +68,6 @@ func authKeyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key, _ := json.Marshal(&Key{Key: keyParam, Expired: false})
-	/*
-		if err != nil {
-			errorHandler(w, r, internalServerError)
-			return
-		}
-	*/
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(key)
@@ -99,9 +80,9 @@ func errorHandler(w http.ResponseWriter, r *http.Request, err *ErrorMessage) {
 }
 
 func main() {
+	Db, _ := PrepareDatabase(os.Getenv("DATABASE_URL"))
+	_ = Db.Ping
 	http.HandleFunc("/", pingHandler)
 	http.HandleFunc("/auth", authKeyHandler)
 	log.Fatal(http.ListenAndServe(":3000", nil))
-	query := "CREATE TABLE IF EXISTS `keys` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`key` VARCHAR(64) NULL,`user_id` INTEGER,`expires_at` DATE NULL,`created_at` DATE NULL);"
-	_, _ = Db.Exec(query)
 }
