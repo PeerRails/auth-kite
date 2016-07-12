@@ -1,4 +1,4 @@
-package main
+package authkite
 
 import (
 	"database/sql"
@@ -6,7 +6,6 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/op/go-logging"
 	"net/http"
-	"os"
 )
 
 var log = logging.MustGetLogger("main.log")
@@ -48,7 +47,7 @@ func PrepareDatabase(database_url string) (db *sql.DB, err error) {
 	return db, err
 }
 
-func pingHandler(w http.ResponseWriter, r *http.Request) {
+func PingHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info("Request Ping")
 	w.Header().Set("Content-Type", "application/json")
 	pong, _ := json.Marshal(&Pong{Text: "pong", Status: "OK"})
@@ -57,32 +56,30 @@ func pingHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(pong)
 }
 
-func authKeyHandler(w http.ResponseWriter, r *http.Request) {
+func AuthKeyHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info("Request Auth Key")
 	w.Header().Set("Content-Type", "application/json")
 	keyParam := r.URL.Query().Get("key")
 
 	if keyParam == "" {
-		errorHandler(w, r, invalidParamError)
+		ErrorHandler(w, r, invalidParamError)
 		return
 	}
 
-	key, _ := json.Marshal(&Key{Key: keyParam, Expired: false})
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(key)
+	row := Db.QueryRow("SELECT key FROM keys WHERE key = $1", keyParam)
+	var key []byte
+	if row != nil {
+		key, _ = json.Marshal(&Key{Key: keyParam, Expired: false})
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(key)
+	} else {
+		ErrorHandler(w, r, invalidParamError)
+		return
+	}
 }
 
-func errorHandler(w http.ResponseWriter, r *http.Request, err *ErrorMessage) {
+func ErrorHandler(w http.ResponseWriter, r *http.Request, err *ErrorMessage) {
 	w.WriteHeader(err.Code)
 	error_json, _ := json.Marshal(err)
 	w.Write(error_json)
-}
-
-func main() {
-	Db, _ := PrepareDatabase(os.Getenv("DATABASE_URL"))
-	_ = Db.Ping
-	http.HandleFunc("/", pingHandler)
-	http.HandleFunc("/auth", authKeyHandler)
-	log.Fatal(http.ListenAndServe(":3000", nil))
 }
