@@ -6,10 +6,10 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/op/go-logging"
 	"net/http"
+	"os"
 )
 
 var log = logging.MustGetLogger("main.log")
-var Db *sql.DB
 
 //var format = logging.MustStringFormatter(
 //	`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
@@ -57,10 +57,9 @@ func PingHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AuthKeyHandler(w http.ResponseWriter, r *http.Request) {
-	log.Info("Request Auth Key")
 	w.Header().Set("Content-Type", "application/json")
 	keyParam := r.URL.Query().Get("key")
-	log.Info("Key: ?", keyParam)
+	log.Info("Request Auth Key: ", keyParam)
 
 	if keyParam == "" {
 		ErrorHandler(w, r, invalidParamError)
@@ -69,7 +68,20 @@ func AuthKeyHandler(w http.ResponseWriter, r *http.Request) {
 
 	var keyjson []byte
 	var key string
-	err := Db.QueryRow("SELECT key FROM keys WHERE key = '?'", keyParam).Scan(&key)
+	db, err := PrepareDatabase(os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatal(err)
+		ErrorHandler(w, r, internalServerError)
+		return
+	}
+
+	queryStmt, err := db.Prepare("SELECT key FROM keys WHERE key = $1 limit 1")
+	if err != nil {
+		log.Fatal(err)
+		ErrorHandler(w, r, internalServerError)
+		return
+	}
+	err = queryStmt.QueryRow(keyParam).Scan(&key)
 	if err == nil {
 		ErrorHandler(w, r, invalidParamError)
 		return
