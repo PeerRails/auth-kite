@@ -48,10 +48,10 @@ func TestPing(t *testing.T) {
 }
 
 func TestAuthKey(t *testing.T) {
-	os.Setenv("DATABASE_URL", "host=192.168.0.111 user=test password=test dbname=omckonrails-test sslmode=disable")
+	os.Setenv("DATABASE_URL", "host=localhost user=test password=test dbname=omckonrails-test sslmode=disable")
 	Convey("Request", t, func() {
 		resp := httptest.NewRecorder()
-		db, _ := PrepareDatabase("host=192.168.0.111 user=test password=test dbname=omckonrails-test sslmode=disable")
+		db, _ := PrepareDatabase("host=localhost user=test password=test dbname=omckonrails-test sslmode=disable")
 		var keyquery string
 		err := db.QueryRow(`DELETE FROM keys; INSERT INTO keys(key, user_id)
 				VALUES('keykeykey', 1) RETURNING key`).Scan(&keyquery)
