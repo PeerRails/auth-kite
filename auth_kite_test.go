@@ -48,8 +48,16 @@ func TestPing(t *testing.T) {
 }
 
 func TestAuthKey(t *testing.T) {
-	SkipConvey("Request", t, func() {
+	Convey("Request", t, func() {
 		resp := httptest.NewRecorder()
+		db, _ := PrepareDatabase("host=localhost user=test password=test dbname=omckonrails-test sslmode=disable")
+		var keyquery string
+		err := db.QueryRow(`DELETE FROM keys; INSERT INTO keys(key, user_id)
+				VALUES('keykeykey', 1) RETURNING key`).Scan(&keyquery)
+		if err != nil {
+			t.Fatal(err)
+		}
+		So(keyquery, ShouldNotBeBlank)
 		Convey("with no parameters", func() {
 			req, err := http.NewRequest("GET", "/auth", nil)
 			if err != nil {
@@ -65,7 +73,7 @@ func TestAuthKey(t *testing.T) {
 				fmt.Printf("%d - %s", w.Code, w.Body.String())
 			})
 		})
-		Convey("with right params", func() {
+		SkipConvey("with right params", func() {
 			req, err := http.NewRequest("GET", "/auth?key=keykeykey", nil)
 			if err != nil {
 				t.Fatal(err)
@@ -80,7 +88,7 @@ func TestAuthKey(t *testing.T) {
 			})
 		})
 
-		Convey("with wrong key", func() {
+		SkipConvey("with wrong key", func() {
 			req, err := http.NewRequest("GET", "/auth?key=keykeykey2", nil)
 			if err != nil {
 				t.Fatal(err)
@@ -137,7 +145,7 @@ func TestErrorHandler(t *testing.T) {
 
 func TestPrepareDatabase(t *testing.T) {
 	Convey("Prepare Mock Database", t, func() {
-		_ = os.Setenv("DATABASE_URL", "host=localhost user=test password=test dbname=keys_test sslmode=disable")
+		_ = os.Setenv("DATABASE_URL", "host=localhost user=test password=test dbname=omckonrails-test sslmode=disable")
 		Convey("DATABASE_URL should not be empty", func() {
 			So(os.Getenv("DATABASE_URL"), ShouldNotBeEmpty)
 		})
@@ -146,30 +154,8 @@ func TestPrepareDatabase(t *testing.T) {
 			So(err, ShouldBeNil)
 		})
 		Convey("should connect to Database", func() {
-			db, err := PrepareDatabase(os.Getenv("DATABASE_URL"))
+			_, err := PrepareDatabase(os.Getenv("DATABASE_URL"))
 			So(err, ShouldBeNil)
-			Convey("should create table", func() {
-				query := "CREATE TABLE IF NOT EXISTS keys(id serial primary key, key varchar(40) not null, user_id integer)"
-				So(err, ShouldBeNil)
-				_, err = db.Exec(query)
-				So(err, ShouldBeNil)
-				Convey("should insert into table", func() {
-					query2, err := db.Prepare("insert into keys(key, user_id) values($1, $2)")
-					So(err, ShouldBeNil)
-					_, err = query2.Exec("key", 1)
-					Convey("should select from table", func() {
-						rows, err := db.Query("select id from keys where id = 1")
-						So(err, ShouldBeNil)
-						for rows.Next() {
-							var id int
-							err = rows.Scan(&id)
-							So(err, ShouldBeNil)
-							So(id, ShouldEqual, 1)
-						}
-
-					})
-				})
-			})
 		})
 	})
 

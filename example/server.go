@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	//postgres://dev:dev@localhost/omckonrails-dev?sslmode=verify-full
+	//postgres://dev:dev@localhost/omckonrails-dev?sslmode=disable
 	Db, _ := authkite.PrepareDatabase(os.Getenv("DATABASE_URL"))
 	_ = Db.Ping
 	http.HandleFunc("/", authkite.PingHandler)
